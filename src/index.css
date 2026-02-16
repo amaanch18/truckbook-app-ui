@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300..800&family=Space+Grotesk:wght@400..700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Required field asterisk for labels wrapping required inputs */
+label:has(> input[required], > select[required], > textarea[required])::after {
+  content: ' *';
+  color: #ef4444;
+  margin-left: 2px;
+  font-weight: 600;
+}
+
+label.required::after {
+  content: ' *';
+  color: #ef4444;
+  margin-left: 2px;
+  font-weight: 600;
+}
+
+:root {
+  color-scheme: light;
+  --surface: #f5f1ea;
+  --storm: #e0e7ff;
+  --ink: #0b0f18;
+  --rust: #d86b4a;
+  --teal: #2fd1a3;
+  --brand-blue: #2563eb;
+  --brand-blue-hover: #1d4ed8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Manrope', sans-serif;
+  color: var(--ink);
+  background: radial-gradient(circle at top left, #ffffff 0%, #f8f4ee 42%, #eef1ff 100%);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(216, 107, 74, 0.2);
+}
