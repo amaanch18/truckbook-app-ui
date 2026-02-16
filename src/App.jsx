@@ -21,7 +21,15 @@ import ReportsPage from './modules/reports/ReportsPage.jsx'
 import SettlementsPage from './modules/settlements/SettlementsPage.jsx'
 import SettlementNewPage from './modules/settlements/SettlementNewPage.jsx'
 import SettlementDetailsPage from './modules/settlements/SettlementDetailsPage.jsx'
+import AdminActivationPage from './modules/admin/AdminActivationPage.jsx'
 import { AppGuard, OnboardingGuard, PublicOnly } from './shared/auth/guards.jsx'
+import SubscriptionGuard from './shared/app/SubscriptionGuard.jsx'
+
+const ProtectedAppRoute = ({ children }) => (
+  <AppGuard>
+    <SubscriptionGuard>{children}</SubscriptionGuard>
+  </AppGuard>
+)
 
 export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -115,178 +123,186 @@ export default function App() {
 
   if (pathname.startsWith('/dashboard')) {
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <DashboardPage />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/app/dashboard')) {
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <DashboardPage />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/app/settings')) {
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <SettingsPage />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/settings')) {
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <SettingsPage />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/app/trucks/new') || pathname.startsWith('/trucks/new')) {
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <AddTruckPage />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/app/trips/new') || pathname.startsWith('/trips/new')) {
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <CreateTripPage />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/app/settlements/new') || pathname.startsWith('/settlements/new')) {
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <SettlementNewPage />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/app/settlements/') && pathname.length > '/app/settlements/'.length) {
     const settlementId = pathname.replace('/app/settlements/', '')
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <SettlementDetailsPage settlementId={settlementId} />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/settlements/') && pathname.length > '/settlements/'.length) {
     const settlementId = pathname.replace('/settlements/', '')
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <SettlementDetailsPage settlementId={settlementId} />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/app/settlements') || pathname.startsWith('/settlements')) {
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <SettlementsPage />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/app/reports') || pathname.startsWith('/reports')) {
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <ReportsPage />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/app/trips/') && pathname.endsWith('/edit')) {
     const tripId = pathname.replace('/app/trips/', '').replace('/edit', '')
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <EditTripPage tripId={tripId} />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/trips/') && pathname.endsWith('/edit')) {
     const tripId = pathname.replace('/trips/', '').replace('/edit', '')
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <EditTripPage tripId={tripId} />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/app/trips/') && pathname.length > '/app/trips/'.length) {
     const tripId = pathname.replace('/app/trips/', '')
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <TripDetailsPage tripId={tripId} />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/trips/') && pathname.length > '/trips/'.length) {
     const tripId = pathname.replace('/trips/', '')
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <TripDetailsPage tripId={tripId} />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/app/trips') || pathname.startsWith('/trips')) {
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <TripsPage />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/trucks/') && pathname.endsWith('/edit')) {
     const truckId = pathname.replace('/trucks/', '').replace('/edit', '')
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <EditTruckPage truckId={truckId} />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/app/trucks/') && pathname.endsWith('/edit')) {
     const truckId = pathname.replace('/app/trucks/', '').replace('/edit', '')
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <EditTruckPage truckId={truckId} />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/app/trucks/')) {
     const truckId = pathname.replace('/app/trucks/', '')
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <TruckDetailsPage truckId={truckId} />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/trucks/') && !pathname.endsWith('/edit')) {
     const truckId = pathname.replace('/trucks/', '')
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <TruckDetailsPage truckId={truckId} />
-      </AppGuard>
+      </ProtectedAppRoute>
     )
   }
 
   if (pathname.startsWith('/app/trucks') || pathname.startsWith('/trucks')) {
     return (
-      <AppGuard>
+      <ProtectedAppRoute>
         <TrucksPage />
+      </ProtectedAppRoute>
+    )
+  }
+
+  if (pathname.startsWith('/admin/activate')) {
+    return (
+      <AppGuard>
+        <AdminActivationPage />
       </AppGuard>
     )
   }

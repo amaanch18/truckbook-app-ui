@@ -4,22 +4,42 @@ import AppSidebar from '../../shared/app/AppSidebar.jsx'
 import MobileNavigationDrawer from '../../shared/app/MobileNavigationDrawer.jsx'
 import { useDashboard } from '../../hooks/useDashboard.js'
 import { useAuthSession } from '../../shared/auth/AuthContext.jsx'
+import { useSubscription } from '../../hooks/useSubscription.js'
 
 export default function DashboardPage() {
   const [toast, setToast] = useState('')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const { me } = useAuthSession()
   const { data, isLoading, error, refetch } = useDashboard()
+  const {
+    data: subscription,
+    isLoading: isSubscriptionLoading,
+    isActive: isSubscriptionActive,
+    isTrial: isSubscriptionTrial,
+    isExpired: isSubscriptionExpired,
+    daysLeft,
+  } = useSubscription()
   const businessName = useMemo(() => me?.orgName || '', [me])
 
   const counts = data?.counts || { trucks: 0, trips: 0 }
   const recentTrips = data?.recentTrips || []
   const pendingAmount = data?.pendingSettlement?.amount || 0
   const showEmpty = counts.trucks === 0 && counts.trips === 0
+  const paywallFromQuery = useMemo(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('paywall') === '1'
+  }, [])
+  const showSubscriptionPaywall =
+    !isSubscriptionLoading &&
+    (paywallFromQuery ||
+      !subscription ||
+      isSubscriptionExpired ||
+      (!isSubscriptionActive && !isSubscriptionTrial))
 
   useEffect(() => {
+    if (showSubscriptionPaywall) return
     refetch().catch(() => {})
-  }, [refetch])
+  }, [refetch, showSubscriptionPaywall])
 
   useEffect(() => {
     if (error?.status === 401) {
@@ -30,6 +50,14 @@ export default function DashboardPage() {
       window.dispatchEvent(new Event('app:navigate'))
     }
   }, [error])
+
+  useEffect(() => {
+    const message = sessionStorage.getItem('truckbook.toast')
+    if (!message) return
+    setToast(message)
+    sessionStorage.removeItem('truckbook.toast')
+    window.setTimeout(() => setToast(''), 2800)
+  }, [])
 
   useEffect(() => {
     if (showEmpty) {
@@ -177,6 +205,50 @@ export default function DashboardPage() {
               >
                 Retry
               </button>
+            </div>
+          ) : showSubscriptionPaywall ? (
+            <div className="w-full max-w-[720px] rounded-2xl border border-[#E9EEF5] bg-white p-8 text-center shadow-[0_16px_32px_rgba(0,0,0,0.06)]">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-rose-50 text-3xl">
+                🔒
+              </div>
+              <h1 className="mt-5 text-2xl font-semibold text-[#111827]">Your trial has ended</h1>
+              <p className="mt-2 text-sm text-slate-500">
+                Upgrade your plan to continue creating trips, settlements and reports.
+              </p>
+              <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                <p>
+                  Current plan:{' '}
+                  <span className="font-semibold text-[#111827]">
+                    {subscription?.planCode || 'TRIAL'}
+                  </span>
+                </p>
+                <p className="mt-1">
+                  Status:{' '}
+                  <span className="font-semibold text-rose-500">
+                    {isSubscriptionExpired ? 'Expired' : subscription?.status || 'Inactive'}
+                  </span>
+                </p>
+                {isSubscriptionTrial && daysLeft != null && (
+                  <p className="mt-1 text-xs text-slate-500">{daysLeft} day(s) left</p>
+                )}
+              </div>
+              <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <button
+                  className="h-11 rounded-xl bg-[#2563EB] px-5 text-sm font-semibold text-white"
+                  type="button"
+                  onClick={() => navigateTo('/pricing')}
+                >
+                  Upgrade plan
+                </button>
+                <a
+                  className="h-11 rounded-xl border border-emerald-700/30 bg-white px-5 text-sm font-semibold text-emerald-700 inline-flex items-center"
+                  href="https://wa.me/911234567890?text=Hi!%20I%20need%20help%20choosing%20a%20TruckBook%20plan."
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Talk on WhatsApp
+                </a>
+              </div>
             </div>
           ) : showEmpty ? (
             <div className="w-full max-w-[720px] rounded-2xl bg-white p-8 text-center shadow-[0_16px_32px_rgba(0,0,0,0.06)]">

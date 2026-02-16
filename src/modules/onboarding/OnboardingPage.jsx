@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { getMe as fetchMe } from '../../api/me.js'
 import { useOnboarding } from '../../hooks/useOnboarding.js'
+import { useSubscription } from '../../hooks/useSubscription.js'
+import { normalizeError } from '../../api/index.js'
 import { getMe, setMe } from '../../shared/auth/authStorage.js'
 
 export default function OnboardingPage() {
@@ -10,7 +12,8 @@ export default function OnboardingPage() {
   const [city, setCity] = useState('')
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
-  const { create, isLoading, error: apiError } = useOnboarding()
+  const { create, isLoading } = useOnboarding()
+  const { refetch: refetchSubscription } = useSubscription({ auto: false })
 
   const isValid = useMemo(() => businessName.trim().length >= 2, [businessName])
 
@@ -27,6 +30,7 @@ export default function OnboardingPage() {
       })
       const nextMe = await fetchMe()
       setMe(nextMe)
+      await refetchSubscription().catch(() => null)
       setToast('Business setup complete')
       const url = new URL(window.location.href)
       url.pathname = '/dashboard'
@@ -34,8 +38,18 @@ export default function OnboardingPage() {
       window.history.pushState({}, '', url)
       window.dispatchEvent(new Event('app:navigate'))
     } catch (err) {
-      const fieldMessage = apiError?.fields?.businessName
-      setError(fieldMessage || apiError?.message || 'Something went wrong. Please try again.')
+      const normalized = normalizeError(err)
+      const message = normalized.message || ''
+      if (String(message).toLowerCase().includes('already onboard')) {
+        const url = new URL(window.location.href)
+        url.pathname = '/dashboard'
+        url.search = ''
+        window.history.pushState({}, '', url)
+        window.dispatchEvent(new Event('app:navigate'))
+        return
+      }
+      const fieldMessage = normalized.fields?.businessName
+      setError(fieldMessage || message || 'Something went wrong. Please try again.')
     }
   }
 

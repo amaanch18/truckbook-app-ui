@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 const WHATSAPP_NUMBER = '911234567890'
 const WHATSAPP_MESSAGE = 'Hi! I need help choosing a TruckBook plan.'
@@ -72,9 +72,18 @@ const faqs = [
 
 export default function PricingPage() {
   const [selectedPlan, setSelectedPlan] = useState('GROWTH')
+  const [toast, setToast] = useState('')
   const whatsappUrl = useMemo(() => {
     const text = encodeURIComponent(WHATSAPP_MESSAGE)
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`
+  }, [])
+
+  useEffect(() => {
+    const message = sessionStorage.getItem('truckbook.toast')
+    if (!message) return
+    setToast(message)
+    sessionStorage.removeItem('truckbook.toast')
+    window.setTimeout(() => setToast(''), 2600)
   }, [])
   return (
     <main className="relative mx-auto max-w-6xl px-6 pb-20">
@@ -192,6 +201,12 @@ export default function PricingPage() {
           ))}
         </div>
       </section>
+
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-ink px-4 py-2 text-sm text-white shadow-lg">
+          {toast}
+        </div>
+      )}
     </main>
   )
 }

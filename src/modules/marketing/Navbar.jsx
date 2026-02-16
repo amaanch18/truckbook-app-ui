@@ -1,4 +1,7 @@
 export default function Navbar({ isOpen, setIsOpen, variant = 'default', disableHome = false }) {
+  const hasToken =
+    typeof window !== 'undefined' && Boolean(localStorage.getItem('truckbook.jwt'))
+
   const navigatePath = (path) => {
     const url = new URL(window.location.href)
     url.pathname = path
@@ -48,13 +51,22 @@ export default function Navbar({ isOpen, setIsOpen, variant = 'default', disable
 
         {!isAuth && (
           <div className="flex items-center gap-4 md:hidden">
-            {!isOpen && (
+            {!isOpen && !hasToken && (
               <button
                 className="rounded-full border border-deep/20 px-3 py-1 text-xs font-semibold text-deep transition hover:border-deep/50 hover:text-ink"
                 type="button"
                 onClick={() => navigateTo('login')}
               >
                 Login
+              </button>
+            )}
+            {!isOpen && hasToken && (
+              <button
+                className="rounded-xl bg-[var(--brand-blue)] px-4 py-2 text-xs font-semibold text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.45)] shadow-md shadow-blue-500/30 transition hover:bg-[var(--brand-blue-hover)]"
+                type="button"
+                onClick={() => navigatePath('/dashboard')}
+              >
+                Dashboard
               </button>
             )}
             <button
@@ -79,20 +91,32 @@ export default function Navbar({ isOpen, setIsOpen, variant = 'default', disable
             <button className="transition hover:text-ink" type="button" onClick={() => navigatePath('/pricing')}>
               Pricing
             </button>
-            <button
-              className="rounded-xl border border-deep/40 px-4 py-2 text-sm font-semibold text-deep transition hover:border-deep/70 hover:text-ink"
-              type="button"
-              onClick={() => navigateTo('login')}
-            >
-              Login
-            </button>
-            <button
-              className="rounded-xl bg-[var(--brand-blue)] px-8 py-3 text-sm font-semibold text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.45)] shadow-lg shadow-blue-500/30 transition hover:-translate-y-0.5 hover:bg-[var(--brand-blue-hover)]"
-            type="button"
-            onClick={() => navigateTo('start')}
-          >
-            Create Account
-          </button>
+            {hasToken ? (
+              <button
+                className="rounded-xl bg-[var(--brand-blue)] px-8 py-3 text-sm font-semibold text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.45)] shadow-lg shadow-blue-500/30 transition hover:-translate-y-0.5 hover:bg-[var(--brand-blue-hover)]"
+                type="button"
+                onClick={() => navigatePath('/dashboard')}
+              >
+                Dashboard
+              </button>
+            ) : (
+              <>
+                <button
+                  className="rounded-xl border border-deep/40 px-4 py-2 text-sm font-semibold text-deep transition hover:border-deep/70 hover:text-ink"
+                  type="button"
+                  onClick={() => navigateTo('login')}
+                >
+                  Login
+                </button>
+                <button
+                  className="rounded-xl bg-[var(--brand-blue)] px-8 py-3 text-sm font-semibold text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.45)] shadow-lg shadow-blue-500/30 transition hover:-translate-y-0.5 hover:bg-[var(--brand-blue-hover)]"
+                  type="button"
+                  onClick={() => navigateTo('start')}
+                >
+                  Create Account
+                </button>
+              </>
+            )}
           </nav>
         )}
 
@@ -109,20 +133,32 @@ export default function Navbar({ isOpen, setIsOpen, variant = 'default', disable
           <button className="text-left transition hover:text-ink" type="button" onClick={() => navigatePath('/pricing')}>
             Pricing
           </button>
-          <button
-            className="rounded-xl border border-deep/40 px-4 py-2 text-sm font-semibold text-deep transition hover:border-deep/70 hover:text-ink"
-            type="button"
-            onClick={() => navigateTo('login')}
-          >
-            Login
-          </button>
-          <button
-            className="rounded-xl bg-[var(--brand-blue)] px-5 py-2 text-sm font-semibold tracking-wide text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.45)] shadow-md transition hover:bg-[var(--brand-blue-hover)]"
-            type="button"
-            onClick={() => navigateTo('start')}
-          >
-            Create Account
-          </button>
+          {hasToken ? (
+            <button
+              className="rounded-xl bg-[var(--brand-blue)] px-5 py-2 text-sm font-semibold tracking-wide text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.45)] shadow-md transition hover:bg-[var(--brand-blue-hover)]"
+              type="button"
+              onClick={() => navigatePath('/dashboard')}
+            >
+              Dashboard
+            </button>
+          ) : (
+            <>
+              <button
+                className="rounded-xl border border-deep/40 px-4 py-2 text-sm font-semibold text-deep transition hover:border-deep/70 hover:text-ink"
+                type="button"
+                onClick={() => navigateTo('login')}
+              >
+                Login
+              </button>
+              <button
+                className="rounded-xl bg-[var(--brand-blue)] px-5 py-2 text-sm font-semibold tracking-wide text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.45)] shadow-md transition hover:bg-[var(--brand-blue-hover)]"
+                type="button"
+                onClick={() => navigateTo('start')}
+              >
+                Create Account
+              </button>
+            </>
+          )}
         </div>
       )}
     </header>

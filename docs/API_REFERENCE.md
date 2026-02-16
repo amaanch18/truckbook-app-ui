@@ -26,6 +26,7 @@ Date format:
 - `Content-Type: application/json`
 - `Accept: application/json`
 - `Authorization: Bearer <token>` (required for protected endpoints)
+- `X-Admin-Key: <secret>` (required for `/api/admin/**`)
 
 ## Common Error Format
 All errors are returned as JSON (no `status` field in body):
@@ -87,6 +88,31 @@ Common error examples:
   "timestamp": "2026-02-01T12:34:56+05:30"
 }
 ```
+- 429 (OTP throttled):
+```json
+{
+  "error": "OTP_RATE_LIMIT",
+  "fields": null,
+  "path": "/api/auth/otp/request",
+  "timestamp": "2026-02-01T12:34:56+05:30"
+}
+```
+- 429 (OTP hourly limit):
+```json
+{
+  "error": "OTP_HOURLY_LIMIT",
+  "fields": null,
+  "path": "/api/auth/otp/request",
+  "timestamp": "2026-02-01T12:34:56+05:30"
+}
+```
+- 403 (Subscription Expired):
+```json
+{
+  "error": "SUBSCRIPTION_EXPIRED",
+  "message": "Your subscription has expired. Please upgrade to continue."
+}
+```
 
 ---
 
@@ -112,8 +138,9 @@ Common error examples:
 ```
 - Notes:
   - OTP is 6 digits, expires in 5 minutes.
+  - Static OTP (temporary): **`123456`** for all environments.
   - Cooldown: 30 seconds between requests per phone.
-  - OTP is logged to server console (dev-friendly).
+  - Hourly limit: max 5 OTP requests per phone in the last 1 hour.
 - Errors:
   - 400 validation (invalid phone)
   - 429 too many requests (cooldown)
@@ -150,8 +177,11 @@ curl -X POST http://localhost:8080/api/auth/otp/request \
 ```
 - Notes:
   - If phone is new, org + user are created automatically.
+  - On first org creation, a TRIAL subscription is auto-created (plan: GROWTH, trial 14 days).
 - Errors:
   - 400: OTP not requested / OTP expired / Invalid OTP / OTP already used
+  - 400: `OTP_EXPIRED` / `OTP_ALREADY_USED` / `OTP_INVALID`
+  - 429: `OTP_TOO_MANY_ATTEMPTS` (>=5 wrong attempts until expiry)
 
 Curl:
 ```bash
@@ -968,7 +998,69 @@ Notes:
 
 ---
 
-# 10) Dashboard
+# 10) Subscription + Admin
+All endpoints require JWT unless stated otherwise.
+
+## GET /api/subscription/current
+- Auth: JWT required
+- Response: `SubscriptionResponse`
+
+Sample response:
+```json
+{
+  "orgId": "c865036a-f8c8-4296-99fd-8cc9984c4a45",
+  "planCode": "GROWTH",
+  "status": "TRIAL",
+  "trialEndsAt": "2026-02-15T10:00:00.000Z",
+  "currentPeriodStart": null,
+  "currentPeriodEnd": null
+}
+```
+
+Notes:
+- This endpoint is allowed even if the subscription is expired (so the UI can show the status).
+
+## POST /api/admin/subscription/activate
+- Auth: Admin key required (`X-Admin-Key`)
+- Body:
+  - `orgId` (UUID, required)
+  - `planCode` (required: STARTER | GROWTH | PRO)
+  - `months` (required: 1..24)
+- Response: `SubscriptionResponse`
+
+Sample request:
+```json
+{
+  "orgId": "c865036a-f8c8-4296-99fd-8cc9984c4a45",
+  "planCode": "GROWTH",
+  "months": 1
+}
+```
+
+Sample response:
+```json
+{
+  "orgId": "c865036a-f8c8-4296-99fd-8cc9984c4a45",
+  "planCode": "GROWTH",
+  "status": "ACTIVE",
+  "trialEndsAt": null,
+  "currentPeriodStart": "2026-02-15T10:00:00.000Z",
+  "currentPeriodEnd": "2026-03-15T10:00:00.000Z"
+}
+```
+
+Errors:
+- 401 if admin key is missing/invalid:
+```json
+{
+  "error": "UNAUTHORIZED",
+  "message": "Invalid admin key"
+}
+```
+
+---
+
+# 11) Dashboard
 All endpoints require JWT.
 
 ## GET /api/dashboard
@@ -1017,7 +1109,7 @@ curl -X GET http://localhost:8080/api/dashboard \
 
 ---
 
-# 11) Dev-only endpoints
+# 12) Dev-only endpoints
 (Only available when `spring.profiles.active=dev`)
 
 ## GET /api/dev/db-check
@@ -1087,4 +1179,18 @@ curl -X POST http://localhost:8080/api/settlements \
 ```bash
 curl -X GET "http://localhost:8080/api/reports/overview?from=01-01-2026&to=31-01-2026&groupBy=month" \
   -H "Authorization: Bearer <JWT>"
+```
+
+8) Current Subscription
+```bash
+curl -X GET http://localhost:8080/api/subscription/current \
+  -H "Authorization: Bearer <JWT>"
+```
+
+9) Admin Activate Subscription
+```bash
+curl -X POST http://localhost:8080/api/admin/subscription/activate \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Key: <ADMIN_KEY>" \
+  -d '{"orgId":"c865036a-f8c8-4296-99fd-8cc9984c4a45","planCode":"GROWTH","months":1}'
 ```

@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:8080'
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 const getToken = () => {
   if (typeof window === 'undefined') return ''
@@ -56,10 +56,10 @@ const parseError = async (response) => {
   return new ApiError(message, response.status, payload)
 }
 
-const request = async (path, { method = 'GET', body, auth = true } = {}) => {
+const request = async (path, { method = 'GET', body, auth = true, headers = {} } = {}) => {
   const response = await fetch(`${BASE_URL}${path}`, {
     method,
-    headers: buildHeaders(true, auth),
+    headers: { ...buildHeaders(true, auth), ...headers },
     body: body ? JSON.stringify(body) : undefined,
   })
   if (!response.ok) {

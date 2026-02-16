@@ -44,7 +44,17 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (!token) return
     if (!me) {
-      refreshMe().catch(() => {
+      refreshMe().catch((err) => {
+        const status = Number(err?.status || 0)
+        const message = String(err?.payload?.error || err?.message || '')
+        const isSubscriptionExpired =
+          status === 403 && message.toUpperCase().includes('SUBSCRIPTION_EXPIRED')
+
+        if (isSubscriptionExpired) {
+          setMeState((prev) => prev || { onboardingCompleted: true })
+          return
+        }
+
         clearAll()
         setTokenState('')
         setMeState(null)

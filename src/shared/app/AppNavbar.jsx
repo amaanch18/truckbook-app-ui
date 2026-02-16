@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { clearAll } from '../auth/authStorage.js'
+import { useSubscription } from '../../hooks/useSubscription.js'
 
 export default function AppNavbar({
   businessName,
@@ -16,6 +17,7 @@ export default function AppNavbar({
   const [showLogout, setShowLogout] = useState(false)
   const menuRef = useRef(null)
   const modalRef = useRef(null)
+  const { data: subscription, isExpired, isTrial, daysLeft } = useSubscription()
   const isSettings = activePath.startsWith('/app/settings') || activePath.startsWith('/settings')
   const initials = businessName
     ? businessName
@@ -83,6 +85,15 @@ export default function AppNavbar({
     setIsMenuOpen(false)
   }
 
+  const handleManagePlan = () => {
+    const url = new URL(window.location.href)
+    url.pathname = '/pricing'
+    url.search = ''
+    window.history.pushState({}, '', url)
+    window.dispatchEvent(new Event('app:navigate'))
+    setIsMenuOpen(false)
+  }
+
   const confirmLogout = () => {
     clearAll()
     onLogout?.()
@@ -92,6 +103,13 @@ export default function AppNavbar({
     window.history.pushState({}, '', url)
     window.dispatchEvent(new Event('app:navigate'))
   }
+
+  const planCode = String(subscription?.planCode || '').toUpperCase()
+  const planLabel = isExpired
+    ? `Plan: ${planCode || 'Trial'} (Expired)`
+    : isTrial
+      ? `Plan: Trial${daysLeft != null ? ` (${daysLeft} days left)` : ''}`
+      : `Plan: ${planCode || '—'}`
 
   return (
     <header
@@ -167,6 +185,23 @@ export default function AppNavbar({
           >
             Logout
           </button>
+          <div className="mt-2 border-t border-slate-100 pt-2">
+            <div className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-500">
+              <span>{planLabel}</span>
+              {isExpired && (
+                <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] text-rose-500">
+                  Expired
+                </span>
+              )}
+            </div>
+            <button
+              className="flex w-full items-center rounded-lg px-3 py-2 text-left font-semibold text-blue-600 hover:bg-slate-50"
+              type="button"
+              onClick={handleManagePlan}
+            >
+              Manage Plan
+            </button>
+          </div>
         </div>
       )}
       {showLogout && (

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth.js'
 import { getMe as fetchMe } from '../../api/me.js'
+import { normalizeError } from '../../api/index.js'
 import { clearAll, setMe, setToken } from '../../shared/auth/authStorage.js'
 
 function getModeFromUrl() {
@@ -87,6 +88,22 @@ export default function OtpPage() {
         me = await fetchMe()
         setMe(me)
       } catch (meError) {
+        const normalized = normalizeError(meError)
+        const apiMessage = String(normalized?.raw?.payload?.error || normalized?.message || '')
+        const isSubscriptionExpired =
+          normalized?.status === 403 && apiMessage.toUpperCase().includes('SUBSCRIPTION_EXPIRED')
+
+        if (isSubscriptionExpired) {
+          setToast('Your trial has ended. Please choose a plan.')
+          window.setTimeout(() => setToast(''), 2600)
+          const url = new URL(window.location.href)
+          url.pathname = '/pricing'
+          url.search = ''
+          window.history.replaceState({}, '', url)
+          window.dispatchEvent(new Event('app:navigate'))
+          return
+        }
+
         clearAll()
         setToast('Failed to load your profile. Please login again.')
         window.setTimeout(() => setToast(''), 2400)
