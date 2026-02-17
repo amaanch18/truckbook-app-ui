@@ -5,6 +5,7 @@ import './index.css'
 import App from './App.jsx'
 import { AppProvider } from './context/AppContext.jsx'
 import { AuthProvider } from './shared/auth/AuthContext.jsx'
+import GlobalApiLoader from './shared/app/GlobalApiLoader.jsx'
 
 registerSW({ immediate: true })
 
@@ -13,6 +14,7 @@ createRoot(document.getElementById('root')).render(
     <AppProvider>
       <AuthProvider>
         <App />
+        <GlobalApiLoader />
       </AuthProvider>
     </AppProvider>
   </StrictMode>,

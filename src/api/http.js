@@ -1,4 +1,25 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+const API_LOADING_EVENT = 'truckbook:api-loading'
+let inFlightRequests = 0
+
+const emitApiLoading = () => {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(
+    new CustomEvent(API_LOADING_EVENT, {
+      detail: { isLoading: inFlightRequests > 0, inFlightRequests },
+    }),
+  )
+}
+
+const beginApiRequest = () => {
+  inFlightRequests += 1
+  emitApiLoading()
+}
+
+const endApiRequest = () => {
+  inFlightRequests = Math.max(0, inFlightRequests - 1)
+  emitApiLoading()
+}
 
 const getToken = () => {
   if (typeof window === 'undefined') return ''
@@ -57,16 +78,21 @@ const parseError = async (response) => {
 }
 
 const request = async (path, { method = 'GET', body, auth = true, headers = {} } = {}) => {
-  const response = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers: { ...buildHeaders(true, auth), ...headers },
-    body: body ? JSON.stringify(body) : undefined,
-  })
-  if (!response.ok) {
-    throw await parseError(response)
+  beginApiRequest()
+  try {
+    const response = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers: { ...buildHeaders(true, auth), ...headers },
+      body: body ? JSON.stringify(body) : undefined,
+    })
+    if (!response.ok) {
+      throw await parseError(response)
+    }
+    if (response.status === 204) return null
+    return response.json()
+  } finally {
+    endApiRequest()
   }
-  if (response.status === 204) return null
-  return response.json()
 }
 
 const toDdMmYyyy = (value) => {
@@ -89,4 +115,14 @@ const formatDates = (payload, fields) => {
   return next
 }
 
-export { BASE_URL, ApiError, request, toDdMmYyyy, formatDates, normalizeError }
+const subscribeApiLoading = (callback) => {
+  if (typeof window === 'undefined') return () => {}
+  const handler = (event) => {
+    callback(Boolean(event?.detail?.isLoading), Number(event?.detail?.inFlightRequests || 0))
+  }
+  window.addEventListener(API_LOADING_EVENT, handler)
+  callback(inFlightRequests > 0, inFlightRequests)
+  return () => window.removeEventListener(API_LOADING_EVENT, handler)
+}
+
+export { BASE_URL, ApiError, request, toDdMmYyyy, formatDates, normalizeError, subscribeApiLoading }
