@@ -95,7 +95,7 @@ export default function AuthPage() {
       url.pathname = '/auth/otp'
       url.searchParams.set('mode', mode)
       url.searchParams.set('phone', phoneE164)
-      window.history.pushState({}, '', url)
+      window.history.replaceState({}, '', url)
       window.dispatchEvent(new Event('app:navigate'))
     } catch (err) {
       if (apiError?.fields?.phoneE164) {

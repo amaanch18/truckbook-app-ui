@@ -9,7 +9,13 @@ import { useAuthSession } from '../../shared/auth/AuthContext.jsx'
 export default function TripsPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [navToast, setNavToast] = useState('')
-  const [filter, setFilter] = useState('ACTIVE')
+  const [filter, setFilter] = useState('ALL')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [truckFilter, setTruckFilter] = useState('ALL')
+  const [partyFilter, setPartyFilter] = useState('ALL')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+  const [showFiltersMobile, setShowFiltersMobile] = useState(false)
   const { me } = useAuthSession()
   const { data: trucksData } = useTrucks()
   const { data: tripsData } = useTrips()
@@ -47,7 +53,7 @@ export default function TripsPage() {
     navigateTo('/app/trips/new')
   }
 
-  const filteredTrips =
+  const statusFilteredTrips =
     filter === 'ALL'
       ? trips
       : trips.filter((trip) => (trip.status || '').toUpperCase() === filter)
@@ -89,6 +95,102 @@ export default function TripsPage() {
 
   const getTruckNumber = (trip) => {
     return trip?.truckNumber || truckMap.get(trip?.truckId) || '—'
+  }
+
+  const getPartyName = (trip) => {
+    return trip?.partyName || trip?.party?.name || trip?.party?.partyName || '—'
+  }
+
+  const parseTripDate = (trip) => {
+    const value = trip?.startDate || trip?.startedAt || trip?.createdAt
+    if (!value) return null
+    if (typeof value === 'string' && /^\d{2}-\d{2}-\d{4}$/.test(value)) {
+      const [day, month, year] = value.split('-')
+      const parsed = new Date(Number(year), Number(month) - 1, Number(day))
+      return Number.isNaN(parsed.getTime()) ? null : parsed
+    }
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? null : parsed
+  }
+
+  const tripTruckOptions = useMemo(() => {
+    const map = new Map()
+    statusFilteredTrips.forEach((trip) => {
+      const id = trip?.truckId
+      const number = getTruckNumber(trip)
+      if (id && !map.has(id)) {
+        map.set(id, number || '—')
+      }
+    })
+    return Array.from(map.entries()).map(([id, truckNumber]) => ({ id, truckNumber }))
+  }, [statusFilteredTrips])
+
+  const tripPartyOptions = useMemo(() => {
+    const map = new Map()
+    statusFilteredTrips.forEach((trip) => {
+      const id = trip?.partyId
+      const name = getPartyName(trip)
+      if (id && !map.has(id)) {
+        map.set(id, name || '—')
+      }
+    })
+    return Array.from(map.entries()).map(([id, partyName]) => ({ id, partyName }))
+  }, [statusFilteredTrips])
+
+  const filteredTrips = useMemo(() => {
+    const from = fromDate ? new Date(`${fromDate}T00:00:00`) : null
+    const to = toDate ? new Date(`${toDate}T23:59:59`) : null
+    const query = searchQuery.trim().toLowerCase()
+
+    return statusFilteredTrips.filter((trip) => {
+      if (truckFilter !== 'ALL' && trip?.truckId !== truckFilter) return false
+      if (partyFilter !== 'ALL' && trip?.partyId !== partyFilter) return false
+
+      const tripDate = parseTripDate(trip)
+      if (from && tripDate && tripDate < from) return false
+      if (to && tripDate && tripDate > to) return false
+      if ((from || to) && !tripDate) return false
+
+      if (query) {
+        const haystack = [
+          trip?.tripCode,
+          trip?.fromLocation,
+          trip?.from,
+          trip?.toLocation,
+          trip?.to,
+          getTruckNumber(trip),
+          getPartyName(trip),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+        if (!haystack.includes(query)) return false
+      }
+
+      return true
+    })
+  }, [statusFilteredTrips, truckFilter, partyFilter, fromDate, toDate, searchQuery])
+
+  const clearFilters = () => {
+    setSearchQuery('')
+    setTruckFilter('ALL')
+    setPartyFilter('ALL')
+    setFromDate('')
+    setToDate('')
+  }
+
+  const handleFromDateChange = (value) => {
+    setFromDate(value)
+    if (value && toDate && new Date(`${toDate}T00:00:00`) < new Date(`${value}T00:00:00`)) {
+      setToDate('')
+    }
+  }
+
+  const handleToDateChange = (value) => {
+    if (value && fromDate && new Date(`${value}T00:00:00`) < new Date(`${fromDate}T00:00:00`)) {
+      return
+    }
+    setToDate(value)
   }
 
   const sortedTrips = useMemo(() => {
@@ -221,11 +323,148 @@ export default function TripsPage() {
                   </button>
                 ))}
               </div>
+              <div className="mb-3 flex items-center justify-between lg:hidden">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Filters
+                </span>
+                <button
+                  type="button"
+                  className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
+                  onClick={() => setShowFiltersMobile((prev) => !prev)}
+                >
+                  {showFiltersMobile ? 'Hide' : 'Show'}
+                </button>
+              </div>
+
+              <div className="hidden gap-2 border-b border-slate-100 pb-4 sm:grid-cols-2 lg:grid lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_auto]">
+                <input
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search route, trip code, truck, party"
+                  className="h-10 rounded-xl border border-slate-200 px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#2563EB] focus:outline-none"
+                />
+                <select
+                  value={truckFilter}
+                  onChange={(event) => setTruckFilter(event.target.value)}
+                  className="h-10 rounded-xl border border-slate-200 px-3 text-sm text-slate-700 focus:border-[#2563EB] focus:outline-none"
+                >
+                  <option value="ALL">All trucks</option>
+                  {tripTruckOptions.map((truck) => (
+                    <option key={truck.id} value={truck.id}>
+                      {truck.truckNumber}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={partyFilter}
+                  onChange={(event) => setPartyFilter(event.target.value)}
+                  className="h-10 rounded-xl border border-slate-200 px-3 text-sm text-slate-700 focus:border-[#2563EB] focus:outline-none"
+                >
+                  <option value="ALL">All parties</option>
+                  {tripPartyOptions.map((party) => (
+                    <option key={party.id} value={party.id}>
+                      {party.partyName}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-2">
+                  <span className="text-xs font-semibold text-slate-500">From</span>
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={(event) => handleFromDateChange(event.target.value)}
+                    aria-label="From date"
+                    max={toDate || undefined}
+                    className="h-full w-full bg-transparent text-sm text-slate-700 focus:outline-none"
+                  />
+                </div>
+                <div className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-2">
+                  <span className="text-xs font-semibold text-slate-500">To</span>
+                  <input
+                    type="date"
+                    value={toDate}
+                    onChange={(event) => handleToDateChange(event.target.value)}
+                    aria-label="To date"
+                    min={fromDate || undefined}
+                    className="h-full w-full bg-transparent text-sm text-slate-700 focus:outline-none"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="h-10 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                >
+                  Clear
+                </button>
+              </div>
+              {showFiltersMobile && (
+                <div className="grid gap-2 border-b border-slate-100 pb-4 sm:grid-cols-2 lg:hidden">
+                  <input
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Search route, trip code, truck, party"
+                    className="h-10 rounded-xl border border-slate-200 px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[#2563EB] focus:outline-none"
+                  />
+                  <select
+                    value={truckFilter}
+                    onChange={(event) => setTruckFilter(event.target.value)}
+                    className="h-10 rounded-xl border border-slate-200 px-3 text-sm text-slate-700 focus:border-[#2563EB] focus:outline-none"
+                  >
+                    <option value="ALL">All trucks</option>
+                    {tripTruckOptions.map((truck) => (
+                      <option key={truck.id} value={truck.id}>
+                        {truck.truckNumber}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={partyFilter}
+                    onChange={(event) => setPartyFilter(event.target.value)}
+                    className="h-10 rounded-xl border border-slate-200 px-3 text-sm text-slate-700 focus:border-[#2563EB] focus:outline-none"
+                  >
+                    <option value="ALL">All parties</option>
+                    {tripPartyOptions.map((party) => (
+                      <option key={party.id} value={party.id}>
+                        {party.partyName}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-2">
+                    <span className="text-xs font-semibold text-slate-500">From</span>
+                    <input
+                      type="date"
+                      value={fromDate}
+                      onChange={(event) => handleFromDateChange(event.target.value)}
+                      aria-label="From date"
+                      max={toDate || undefined}
+                      className="h-full w-full bg-transparent text-sm text-slate-700 focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-2">
+                    <span className="text-xs font-semibold text-slate-500">To</span>
+                    <input
+                      type="date"
+                      value={toDate}
+                      onChange={(event) => handleToDateChange(event.target.value)}
+                      aria-label="To date"
+                      min={fromDate || undefined}
+                      className="h-full w-full bg-transparent text-sm text-slate-700 focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="h-10 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
               <div className="lg:max-h-[calc(100vh-360px)] lg:overflow-y-auto lg:pr-1">
-                <div className="hidden grid-cols-[2fr_1.1fr_0.9fr_0.9fr_1fr_80px] gap-3 border-b border-slate-100 pb-2 text-xs font-semibold uppercase text-slate-400 lg:grid">
+                <div className="mb-2 hidden items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 lg:grid lg:grid-cols-[2fr_1.1fr_0.9fr_0.9fr_1fr_80px]">
                   <span>Route</span>
                   <span>Truck</span>
-                  <span>Date</span>
+                  <span>Start date</span>
                   <span>Status</span>
                   <span title="Total freight amount for this trip">
                     Amount

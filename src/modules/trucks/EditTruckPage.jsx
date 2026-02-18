@@ -203,11 +203,15 @@ export default function EditTruckPage({ truckId }) {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [isDirty])
 
-  const navigateTo = (path) => {
+  const navigateTo = (path, { replace = false } = {}) => {
     const url = new URL(window.location.href)
     url.pathname = path
     url.search = ''
-    window.history.pushState({}, '', url)
+    if (replace) {
+      window.history.replaceState({}, '', url)
+    } else {
+      window.history.pushState({}, '', url)
+    }
     window.dispatchEvent(new Event('app:navigate'))
   }
 
@@ -270,7 +274,7 @@ export default function EditTruckPage({ truckId }) {
           fitness: buildCompliance(compliance.fitness),
         },
       })
-      navigateTo(`/trucks/${truckId}`)
+      navigateTo(`/trucks/${truckId}`, { replace: true })
     } catch (err) {
       const normalizedError = normalizeError(err)
       if (normalizedError.status === 401) {

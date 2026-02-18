@@ -36,6 +36,13 @@ function toIsoDate(value) {
   return date.toISOString().split('T')[0]
 }
 
+function sanitizeNonNegative(value) {
+  if (value === '') return ''
+  const next = Number(value)
+  if (Number.isNaN(next) || next < 0) return null
+  return value
+}
+
 export default function EditTripPage({ tripId }) {
   const [trucks, setTrucks] = useState([])
   const [selectedTruck, setSelectedTruck] = useState(null)
@@ -235,11 +242,15 @@ export default function EditTripPage({ tripId }) {
     return () => document.removeEventListener('keydown', handleKey)
   }, [showDelete])
 
-  const navigateTo = (path) => {
+  const navigateTo = (path, { replace = false } = {}) => {
     const url = new URL(window.location.href)
     url.pathname = path
     url.search = ''
-    window.history.pushState({}, '', url)
+    if (replace) {
+      window.history.replaceState({}, '', url)
+    } else {
+      window.history.pushState({}, '', url)
+    }
     window.dispatchEvent(new Event('app:navigate'))
   }
 
@@ -386,7 +397,7 @@ export default function EditTripPage({ tripId }) {
               notes: notes.trim() || undefined,
             }
       await update(tripId, payload)
-      navigateTo(`/app/trips/${tripId}`)
+      navigateTo(`/app/trips/${tripId}`, { replace: true })
     } catch (err) {
       const normalized = normalizeError(err)
       if (normalized.status === 401) {
@@ -851,9 +862,14 @@ export default function EditTripPage({ tripId }) {
                           <input
                             id="freight"
                             value={freight}
-                            onChange={(event) => setFreight(event.target.value)}
+                            onChange={(event) => {
+                              const next = sanitizeNonNegative(event.target.value)
+                              if (next === null) return
+                              setFreight(next)
+                            }}
                             type="number"
                             min="0"
+                            step="0.01"
                             disabled={isCompleted}
                             required
                             className="ml-2 w-full bg-transparent text-sm text-[#111827] outline-none"

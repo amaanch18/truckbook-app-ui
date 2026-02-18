@@ -62,6 +62,13 @@ function formatCurrency(value) {
   return `₹${Number(value || 0).toLocaleString('en-IN')}`
 }
 
+function sanitizeNonNegative(value) {
+  if (value === '') return ''
+  const next = Number(value)
+  if (Number.isNaN(next) || next < 0) return null
+  return value
+}
+
 export default function TripDetailsPage({ tripId }) {
   const [trip, setTrip] = useState(null)
   const [status, setStatus] = useState('loading')
@@ -1479,9 +1486,15 @@ export default function TripDetailsPage({ tripId }) {
                   <input
                     id="fuel-quantity"
                     type="number"
-                    min="0"
+                    min="0.01"
+                    step="0.01"
+                    inputMode="decimal"
                     value={fuelQuantity}
-                    onChange={(event) => setFuelQuantity(event.target.value)}
+                    onChange={(event) => {
+                      const next = sanitizeNonNegative(event.target.value)
+                      if (next === null) return
+                      setFuelQuantity(next)
+                    }}
                     placeholder={fuelType === 'CNG' ? 'kg' : 'liters'}
                     required
                     className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-[#111827]"
@@ -1494,9 +1507,15 @@ export default function TripDetailsPage({ tripId }) {
                   <input
                     id="fuel-price"
                     type="number"
-                    min="0"
+                    min="0.01"
+                    step="0.01"
+                    inputMode="decimal"
                     value={fuelPrice}
-                    onChange={(event) => setFuelPrice(event.target.value)}
+                    onChange={(event) => {
+                      const next = sanitizeNonNegative(event.target.value)
+                      if (next === null) return
+                      setFuelPrice(next)
+                    }}
                     placeholder="₹"
                     required
                     className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-[#111827]"
@@ -1619,9 +1638,15 @@ export default function TripDetailsPage({ tripId }) {
                   <input
                     id="toll-amount"
                     type="number"
-                    min="0"
+                    min="0.01"
+                    step="0.01"
+                    inputMode="decimal"
                     value={tollAmount}
-                    onChange={(event) => setTollAmount(event.target.value)}
+                    onChange={(event) => {
+                      const next = sanitizeNonNegative(event.target.value)
+                      if (next === null) return
+                      setTollAmount(next)
+                    }}
                     required
                     className="w-full text-sm text-[#111827] focus:outline-none"
                   />
@@ -1728,9 +1753,15 @@ export default function TripDetailsPage({ tripId }) {
                   <input
                     id="driver-amount"
                     type="number"
-                    min="0"
+                    min="0.01"
+                    step="0.01"
+                    inputMode="decimal"
                     value={driverAmount}
-                    onChange={(event) => setDriverAmount(event.target.value)}
+                    onChange={(event) => {
+                      const next = sanitizeNonNegative(event.target.value)
+                      if (next === null) return
+                      setDriverAmount(next)
+                    }}
                     required
                     className="w-full text-sm text-[#111827] focus:outline-none"
                   />

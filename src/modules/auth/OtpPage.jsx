@@ -117,7 +117,7 @@ export default function OtpPage() {
       const url = new URL(window.location.href)
       url.pathname = me?.onboardingCompleted ? '/dashboard' : '/onboarding'
       url.search = ''
-      window.history.pushState({}, '', url)
+      window.history.replaceState({}, '', url)
       window.dispatchEvent(new Event('app:navigate'))
     } catch (err) {
       setError(apiError?.message || err?.message || 'Invalid/Expired OTP')

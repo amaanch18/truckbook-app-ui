@@ -102,11 +102,15 @@ export default function AddTruckPage() {
     return () => document.removeEventListener('keydown', handleKey)
   }, [showDiscard])
 
-  const navigateTo = (path) => {
+  const navigateTo = (path, { replace = false } = {}) => {
     const url = new URL(window.location.href)
     url.pathname = path
     url.search = ''
-    window.history.pushState({}, '', url)
+    if (replace) {
+      window.history.replaceState({}, '', url)
+    } else {
+      window.history.pushState({}, '', url)
+    }
     window.dispatchEvent(new Event('app:navigate'))
   }
 
@@ -125,7 +129,7 @@ export default function AddTruckPage() {
 
   const handleCancel = () => {
     if (!isDirty) {
-      navigateTo('/trucks')
+      navigateTo('/trucks', { replace: true })
       return
     }
     setShowDiscard(true)

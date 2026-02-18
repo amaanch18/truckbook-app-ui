@@ -88,6 +88,13 @@ const parseTripDate = (value) => {
   return new Date(value)
 }
 
+const sanitizeNonNegative = (value) => {
+  if (value === '') return ''
+  const next = Number(value)
+  if (Number.isNaN(next) || next < 0) return null
+  return value
+}
+
 export default function TruckDetailsPage({ truckId }) {
   const [truck, setTruck] = useState(null)
   const [trips, setTrips] = useState([])
@@ -1117,9 +1124,15 @@ export default function TruckDetailsPage({ truckId }) {
                   <input
                     id="repair-amount"
                     type="number"
-                    min="0"
+                    min="0.01"
+                    step="0.01"
+                    inputMode="decimal"
                     value={repairAmount}
-                    onChange={(event) => setRepairAmount(event.target.value)}
+                    onChange={(event) => {
+                      const next = sanitizeNonNegative(event.target.value)
+                      if (next === null) return
+                      setRepairAmount(next)
+                    }}
                     required
                     className="w-full text-sm text-[#111827] focus:outline-none"
                   />
@@ -1265,9 +1278,15 @@ export default function TruckDetailsPage({ truckId }) {
                   <input
                     id="tyre-amount"
                     type="number"
-                    min="0"
+                    min="0.01"
+                    step="0.01"
+                    inputMode="decimal"
                     value={tyreAmount}
-                    onChange={(event) => setTyreAmount(event.target.value)}
+                    onChange={(event) => {
+                      const next = sanitizeNonNegative(event.target.value)
+                      if (next === null) return
+                      setTyreAmount(next)
+                    }}
                     required
                     className="w-full text-sm text-[#111827] focus:outline-none"
                   />

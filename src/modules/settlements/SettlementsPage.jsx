@@ -102,6 +102,20 @@ export default function SettlementsPage() {
     setQuery('')
   }
 
+  const handleFromDateChange = (value) => {
+    setFromDate(value)
+    if (value && toDate && new Date(`${toDate}T00:00:00`) < new Date(`${value}T00:00:00`)) {
+      setToDate('')
+    }
+  }
+
+  const handleToDateChange = (value) => {
+    if (value && fromDate && new Date(`${value}T00:00:00`) < new Date(`${fromDate}T00:00:00`)) {
+      return
+    }
+    setToDate(value)
+  }
+
   useEffect(() => {
     resetFilters()
   }, [])
@@ -499,7 +513,8 @@ export default function SettlementsPage() {
                       className="mt-1 h-9 w-full min-w-0 rounded-lg border border-slate-200 px-3 text-[11px]"
                       type="date"
                       value={fromDate}
-                      onChange={(event) => setFromDate(event.target.value)}
+                      onChange={(event) => handleFromDateChange(event.target.value)}
+                      max={toDate || undefined}
                     />
                   </div>
                   <div>
@@ -508,7 +523,8 @@ export default function SettlementsPage() {
                       className="mt-1 h-9 w-full min-w-0 rounded-lg border border-slate-200 px-3 text-[11px]"
                       type="date"
                       value={toDate}
-                      onChange={(event) => setToDate(event.target.value)}
+                      onChange={(event) => handleToDateChange(event.target.value)}
+                      min={fromDate || undefined}
                     />
                   </div>
                   <div>
@@ -585,7 +601,8 @@ export default function SettlementsPage() {
                         className="mt-1 h-9 w-full min-w-0 rounded-lg border border-slate-200 px-3 text-[11px]"
                         type="date"
                         value={fromDate}
-                        onChange={(event) => setFromDate(event.target.value)}
+                        onChange={(event) => handleFromDateChange(event.target.value)}
+                        max={toDate || undefined}
                       />
                     </div>
                     <div>
@@ -594,7 +611,8 @@ export default function SettlementsPage() {
                         className="mt-1 h-9 w-full min-w-0 rounded-lg border border-slate-200 px-3 text-[11px]"
                         type="date"
                         value={toDate}
-                        onChange={(event) => setToDate(event.target.value)}
+                        onChange={(event) => handleToDateChange(event.target.value)}
+                        min={fromDate || undefined}
                       />
                     </div>
                     <div>

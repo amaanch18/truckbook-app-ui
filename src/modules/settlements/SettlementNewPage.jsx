@@ -71,6 +71,13 @@ const saveDraft = (draft) => {
   sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
 }
 
+const sanitizeNonNegative = (value) => {
+  if (value === '') return ''
+  const next = Number(value)
+  if (Number.isNaN(next) || next < 0) return null
+  return value
+}
+
 const resetDraft = () => {
   sessionStorage.removeItem(DRAFT_KEY)
 }
@@ -163,11 +170,15 @@ export default function SettlementNewPage() {
     refreshCredit()
   }, [refreshCredit])
 
-  const navigateTo = (path) => {
+  const navigateTo = (path, { replace = false } = {}) => {
     const url = new URL(window.location.href)
     url.pathname = path
     url.search = ''
-    window.history.pushState({}, '', url)
+    if (replace) {
+      window.history.replaceState({}, '', url)
+    } else {
+      window.history.pushState({}, '', url)
+    }
     window.dispatchEvent(new Event('app:navigate'))
   }
 
@@ -427,7 +438,7 @@ export default function SettlementNewPage() {
       setToast('Settlement saved')
       window.setTimeout(() => setToast(''), 2200)
       resetDraft()
-      navigateTo(`/app/settlements/${created.id}`)
+      navigateTo(`/app/settlements/${created.id}`, { replace: true })
     } catch (err) {
       const normalized = normalizeError(err)
       setToast(normalized.message || 'Failed to save settlement')
@@ -736,9 +747,15 @@ export default function SettlementNewPage() {
                       <label className="required text-sm font-semibold text-[#111827]">Received amount</label>
                       <input
                         className="mt-2 h-11 w-full rounded-xl border border-[#D9E2EF] px-4 text-sm"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        inputMode="decimal"
                         value={draft.receivedAmount}
                         onChange={(event) => {
-                          const value = event.target.value.replace(/^0+(?=\d)/, '')
+                          const raw = event.target.value.replace(/^0+(?=\d)/, '')
+                          const value = sanitizeNonNegative(raw)
+                          if (value === null) return
                           setDraft((prev) => ({ ...prev, receivedAmount: value }))
                         }}
                         placeholder="e.g. 50000"
@@ -847,9 +864,14 @@ export default function SettlementNewPage() {
                               <p className="text-xs text-slate-400">Allocate</p>
                               <input
                                 className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                inputMode="decimal"
                                 value={draft.allocations[trip.id] ?? ''}
                                 onChange={(event) => {
-                                  const value = event.target.value
+                                  const value = sanitizeNonNegative(event.target.value)
+                                  if (value === null) return
                                   setDraft((prev) => ({
                                     ...prev,
                                     allocations: { ...prev.allocations, [trip.id]: value },

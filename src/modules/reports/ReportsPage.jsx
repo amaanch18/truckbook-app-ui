@@ -167,9 +167,20 @@ export default function ReportsPage() {
     }
   }, [error])
 
-  const handleDateChange = (setter) => (event) => {
+  const handleFromDateChange = (event) => {
     const nextValue = event.target.value
-    setter(nextValue)
+    setFromDate(nextValue)
+    if (nextValue && toDate && new Date(`${toDate}T00:00:00`) < new Date(`${nextValue}T00:00:00`)) {
+      setToDate('')
+    }
+  }
+
+  const handleToDateChange = (event) => {
+    const nextValue = event.target.value
+    if (nextValue && fromDate && new Date(`${nextValue}T00:00:00`) < new Date(`${fromDate}T00:00:00`)) {
+      return
+    }
+    setToDate(nextValue)
   }
 
   const navigateTo = (path) => {
@@ -226,7 +237,9 @@ export default function ReportsPage() {
   const netProfit = revenueAccrual - (tripCost + overheadCost)
   const cashReceived = Number(overviewSummary.cashReceived || 0)
   const pendingSettlementTotal = Number(overviewSummary.outstanding || 0)
-  const partiesWithPending = Array.isArray(overview.topParties) ? overview.topParties.length : 0
+  const partiesWithPending = Array.isArray(overview.topParties)
+    ? overview.topParties.filter((party) => Number(party?.outstanding || 0) > 0).length
+    : 0
   const costShare =
     revenueAccrual > 0
       ? Math.round(((tripCost + overheadCost) / revenueAccrual) * 100)
@@ -484,7 +497,8 @@ export default function ReportsPage() {
                 name="from"
                 type="date"
                 value={fromDate}
-                onChange={handleDateChange(setFromDate)}
+                onChange={handleFromDateChange}
+                max={toDate || undefined}
                 className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600"
               />
               <span className="text-sm text-slate-400">to</span>
@@ -492,7 +506,8 @@ export default function ReportsPage() {
                 name="to"
                 type="date"
                 value={toDate}
-                onChange={handleDateChange(setToDate)}
+                onChange={handleToDateChange}
+                min={fromDate || undefined}
                 className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600"
               />
             </div>
@@ -1448,14 +1463,16 @@ export default function ReportsPage() {
                   name="from"
                   type="date"
                   value={fromDate}
-                  onChange={handleDateChange(setFromDate)}
+                  onChange={handleFromDateChange}
+                  max={toDate || undefined}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600"
                 />
                 <input
                   name="to"
                   type="date"
                   value={toDate}
-                  onChange={handleDateChange(setToDate)}
+                  onChange={handleToDateChange}
+                  min={fromDate || undefined}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600"
                 />
               </div>

@@ -27,6 +27,13 @@ function toIsoDate(value) {
   return date.toISOString().split('T')[0]
 }
 
+function sanitizeNonNegative(value) {
+  if (value === '') return ''
+  const next = Number(value)
+  if (Number.isNaN(next) || next < 0) return null
+  return value
+}
+
 export default function CreateTripPage() {
   const [selectedTruck, setSelectedTruck] = useState(null)
   const [selectedParty, setSelectedParty] = useState(null)
@@ -106,11 +113,15 @@ export default function CreateTripPage() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  const navigateTo = (path) => {
+  const navigateTo = (path, { replace = false } = {}) => {
     const url = new URL(window.location.href)
     url.pathname = path
     url.search = ''
-    window.history.pushState({}, '', url)
+    if (replace) {
+      window.history.replaceState({}, '', url)
+    } else {
+      window.history.pushState({}, '', url)
+    }
     window.dispatchEvent(new Event('app:navigate'))
   }
 
@@ -183,7 +194,7 @@ export default function CreateTripPage() {
         freightAmount: Number(freight || 0),
         notes: notes.trim() || undefined,
       })
-      navigateTo(`/app/trips/${created.id}`)
+      navigateTo(`/app/trips/${created.id}`, { replace: true })
     } catch (err) {
       const normalizedError = normalizeError(err)
       if (normalizedError.status === 401) {
@@ -598,15 +609,20 @@ export default function CreateTripPage() {
                       </label>
                       <div className="mt-2 flex h-11 items-center rounded-xl border border-[#D9E2EF] px-3">
                         <span className="text-slate-400">₹</span>
-                        <input
-                          id="freight"
-                          value={freight}
-                          onChange={(event) => setFreight(event.target.value)}
-                          type="number"
-                          min="0"
-                          required
-                          className="ml-2 w-full bg-transparent text-sm text-[#111827] outline-none"
-                        />
+                          <input
+                            id="freight"
+                            value={freight}
+                            onChange={(event) => {
+                              const next = sanitizeNonNegative(event.target.value)
+                              if (next === null) return
+                              setFreight(next)
+                            }}
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            required
+                            className="ml-2 w-full bg-transparent text-sm text-[#111827] outline-none"
+                          />
                       </div>
                       {errors.freight && (
                         <p className="mt-2 text-sm text-red-500">{errors.freight}</p>
