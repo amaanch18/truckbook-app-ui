@@ -105,6 +105,8 @@ export default function AppNavbar({
   }
 
   const planCode = String(subscription?.planCode || '').toUpperCase()
+  const subscriptionStatus = String(subscription?.status || '').toUpperCase()
+  const hideManagePlan = planCode === 'PRO' && subscriptionStatus === 'ACTIVE' && !isExpired
   const planLabel = isExpired
     ? `Plan: ${planCode || 'Trial'} (Expired)`
     : isTrial
@@ -194,13 +196,15 @@ export default function AppNavbar({
                 </span>
               )}
             </div>
-            <button
-              className="flex w-full items-center rounded-lg px-3 py-2 text-left font-semibold text-blue-600 hover:bg-slate-50"
-              type="button"
-              onClick={handleManagePlan}
-            >
-              Manage Plan
-            </button>
+            {!hideManagePlan && (
+              <button
+                className="flex w-full items-center rounded-lg px-3 py-2 text-left font-semibold text-blue-600 hover:bg-slate-50"
+                type="button"
+                onClick={handleManagePlan}
+              >
+                Manage Plan
+              </button>
+            )}
           </div>
         </div>
       )}

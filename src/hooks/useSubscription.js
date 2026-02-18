@@ -63,10 +63,18 @@ export const useSubscription = (options = {}) => {
   const daysLeft = getDaysLeft(data)
   const isExpired = useMemo(() => {
     if (!data) return true
+    if (isActive) {
+      if (!data.currentPeriodEnd) return false
+      return new Date(data.currentPeriodEnd).getTime() < Date.now()
+    }
+    if (isTrial) {
+      if (!data.trialEndsAt) return true
+      return new Date(data.trialEndsAt).getTime() < Date.now()
+    }
     const endAt = getEndAt(data)
-    if (!endAt) return !isActive
+    if (!endAt) return true
     return new Date(endAt).getTime() < Date.now()
-  }, [data, isActive])
+  }, [data, isActive, isTrial])
 
   const statusLabel = useMemo(() => {
     if (!data) return 'No plan'

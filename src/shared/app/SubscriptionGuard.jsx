@@ -17,7 +17,7 @@ const redirectToDashboardPaywall = () => {
 export default function SubscriptionGuard({ children }) {
   const { data, isLoading, isFetching, error, isActive, isTrial, isExpired } =
     useSubscription()
-  const blocked = !data || isExpired || (!isActive && !isTrial)
+  const blocked = !data || (isTrial && isExpired) || (!isActive && !isTrial)
   const onDashboard = isDashboardPath(window.location.pathname)
 
   useEffect(() => {

@@ -6,6 +6,7 @@ import { useTrucks } from '../../hooks/useTrucks.js'
 import { normalizeError } from '../../api/index.js'
 import { useAuthSession } from '../../shared/auth/AuthContext.jsx'
 import { useTrips } from '../../hooks/useTrips.js'
+import { useSubscription } from '../../hooks/useSubscription.js'
 
 const truckTypes = ['Open', 'Container', 'Trailer', 'Tanker', 'Tipper', 'Other']
 
@@ -43,6 +44,13 @@ export default function AddTruckPage() {
   const { me } = useAuthSession()
   const { data: trucksData, create } = useTrucks()
   const { data: tripsData } = useTrips()
+  const { data: subscription } = useSubscription()
+  const planCode = String(subscription?.planCode || '').toUpperCase()
+  const truckLimit = planCode === 'GROWTH' ? 10 : null
+  const isTruckLimitReached =
+    truckLimit != null && Number((trucksData || []).length || 0) >= truckLimit
+  const truckLimitMessage =
+    'Growth plan allows up to 10 trucks. Upgrade to Pro for unlimited trucks.'
   const hasTrucks = (trucksData || []).length > 0
   const hasTrips = (tripsData || []).length > 0
 
@@ -138,6 +146,11 @@ export default function AddTruckPage() {
   const handleSave = async (event) => {
     event.preventDefault()
     if (isSaving) return
+    if (isTruckLimitReached) {
+      setToast(truckLimitMessage)
+      window.setTimeout(() => setToast(''), 2400)
+      return
+    }
     const normalized = normalizeTruckNumber(truckNumber)
     const newErrors = {}
     if (!normalized || !isValidTruckNumber(normalized)) {
@@ -282,6 +295,11 @@ export default function AddTruckPage() {
             </div>
 
             <form className="mt-6 space-y-4" onSubmit={handleSave}>
+              {isTruckLimitReached && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
+                  {truckLimitMessage}
+                </div>
+              )}
               <div>
                 <label className="required text-sm font-semibold text-[#111827]" htmlFor="truckNumber">
                   Truck number
@@ -441,7 +459,7 @@ export default function AddTruckPage() {
                 <button
                   className="flex h-11 items-center justify-center rounded-xl bg-[#2F66F6] text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-400 lg:min-w-[160px]"
                   type="submit"
-                  disabled={!isValid || isSaving}
+                  disabled={!isValid || isSaving || isTruckLimitReached}
                 >
                   {isSaving ? (
                     <span className="flex items-center gap-2">

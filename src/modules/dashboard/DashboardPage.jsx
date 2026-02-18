@@ -5,6 +5,7 @@ import MobileNavigationDrawer from '../../shared/app/MobileNavigationDrawer.jsx'
 import { useDashboard } from '../../hooks/useDashboard.js'
 import { useAuthSession } from '../../shared/auth/AuthContext.jsx'
 import { useSubscription } from '../../hooks/useSubscription.js'
+import { useTrucks } from '../../hooks/useTrucks.js'
 
 export default function DashboardPage() {
   const [toast, setToast] = useState('')
@@ -19,7 +20,14 @@ export default function DashboardPage() {
     isExpired: isSubscriptionExpired,
     daysLeft,
   } = useSubscription()
+  const { data: trucksData } = useTrucks()
   const businessName = useMemo(() => me?.orgName || '', [me])
+  const planCode = String(subscription?.planCode || '').toUpperCase()
+  const truckLimit = planCode === 'GROWTH' ? 10 : null
+  const trucksCount = (trucksData || []).length
+  const isTruckLimitReached = truckLimit != null && trucksCount >= truckLimit
+  const truckLimitMessage =
+    'Growth plan allows up to 10 trucks. Upgrade to Pro for unlimited trucks.'
 
   const counts = data?.counts || { trucks: 0, trips: 0 }
   const recentTrips = data?.recentTrips || []
@@ -29,12 +37,18 @@ export default function DashboardPage() {
     const params = new URLSearchParams(window.location.search)
     return params.get('paywall') === '1'
   }, [])
+  const dashboardSubscriptionExpired =
+    error?.status === 403 &&
+    String(error?.raw?.payload?.error || error?.message || '')
+      .toUpperCase()
+      .includes('SUBSCRIPTION_EXPIRED')
+  const isSubscriptionBlocked =
+    !subscription || (isSubscriptionTrial && isSubscriptionExpired) || (!isSubscriptionActive && !isSubscriptionTrial)
   const showSubscriptionPaywall =
     !isSubscriptionLoading &&
-    (paywallFromQuery ||
-      !subscription ||
-      isSubscriptionExpired ||
-      (!isSubscriptionActive && !isSubscriptionTrial))
+    (dashboardSubscriptionExpired ||
+      isSubscriptionBlocked ||
+      (paywallFromQuery && isSubscriptionBlocked))
 
   useEffect(() => {
     if (showSubscriptionPaywall) return
@@ -129,6 +143,16 @@ export default function DashboardPage() {
     navigateTo('/app/trips/new')
   }
 
+  const handleAddTruckClick = () => {
+    if (isTruckLimitReached) {
+      setToast(truckLimitMessage)
+      window.clearTimeout(handleAddTruckClick.timer)
+      handleAddTruckClick.timer = window.setTimeout(() => setToast(''), 2600)
+      return
+    }
+    navigateTo('/trucks/new')
+  }
+
   const formatCurrency = (value) => {
     const number = Number(value || 0)
     return new Intl.NumberFormat('en-IN', {
@@ -192,20 +216,6 @@ export default function DashboardPage() {
               <div className="h-32 rounded-2xl border border-[#E9EEF5] bg-white" />
               <div className="h-40 rounded-2xl border border-[#E9EEF5] bg-white" />
             </div>
-          ) : error ? (
-            <div className="w-full max-w-[720px] rounded-2xl border border-red-200 bg-white p-6 text-left shadow-[0_16px_32px_rgba(0,0,0,0.06)]">
-              <h2 className="text-lg font-semibold text-[#111827]">Couldn’t load dashboard</h2>
-              <p className="mt-2 text-sm text-slate-600">
-                {error.message || 'Please try again.'}
-              </p>
-              <button
-                className="mt-4 h-10 rounded-xl bg-[#2563EB] px-4 text-sm font-semibold text-white"
-                type="button"
-                onClick={() => refetch()}
-              >
-                Retry
-              </button>
-            </div>
           ) : showSubscriptionPaywall ? (
             <div className="w-full max-w-[720px] rounded-2xl border border-[#E9EEF5] bg-white p-8 text-center shadow-[0_16px_32px_rgba(0,0,0,0.06)]">
               <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-rose-50 text-3xl">
@@ -250,6 +260,20 @@ export default function DashboardPage() {
                 </a>
               </div>
             </div>
+          ) : error ? (
+            <div className="w-full max-w-[720px] rounded-2xl border border-red-200 bg-white p-6 text-left shadow-[0_16px_32px_rgba(0,0,0,0.06)]">
+              <h2 className="text-lg font-semibold text-[#111827]">Couldn’t load dashboard</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                {error.message || 'Please try again.'}
+              </p>
+              <button
+                className="mt-4 h-10 rounded-xl bg-[#2563EB] px-4 text-sm font-semibold text-white"
+                type="button"
+                onClick={() => refetch()}
+              >
+                Retry
+              </button>
+            </div>
           ) : showEmpty ? (
             <div className="w-full max-w-[720px] rounded-2xl bg-white p-8 text-center shadow-[0_16px_32px_rgba(0,0,0,0.06)]">
               <div className="mx-auto flex h-40 w-40 items-center justify-center rounded-full bg-slate-50">
@@ -270,7 +294,7 @@ export default function DashboardPage() {
                 <button
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-6 py-3 text-sm font-semibold text-white sm:w-auto"
                   type="button"
-                  onClick={() => navigateTo('/trucks/new')}
+                  onClick={handleAddTruckClick}
                 >
                   <span>🚚</span>
                   Add your first truck
@@ -308,6 +332,11 @@ export default function DashboardPage() {
                     : 'Overview of your transport operations.'}
                 </p>
               </div>
+              {isTruckLimitReached && (
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+                  {truckLimitMessage}
+                </div>
+              )}
 
               <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <button
@@ -388,9 +417,10 @@ export default function DashboardPage() {
                           Create trip
                         </button>
                         <button
-                          className="h-11 rounded-xl border border-[#D9E2EF] px-4 text-sm font-semibold text-[#111827]"
+                          className="h-11 rounded-xl border border-[#D9E2EF] px-4 text-sm font-semibold text-[#111827] disabled:cursor-not-allowed disabled:text-slate-400"
                           type="button"
-                          onClick={() => navigateTo('/trucks/new')}
+                          onClick={handleAddTruckClick}
+                          disabled={isTruckLimitReached}
                         >
                           Add truck
                         </button>

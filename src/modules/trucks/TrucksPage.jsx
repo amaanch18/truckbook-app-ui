@@ -6,6 +6,7 @@ import { useTrucks } from '../../hooks/useTrucks.js'
 import { useTrips } from '../../hooks/useTrips.js'
 import { normalizeError } from '../../api/index.js'
 import { useAuthSession } from '../../shared/auth/AuthContext.jsx'
+import { useSubscription } from '../../hooks/useSubscription.js'
 
 const truckTypes = ['All types', 'Open', 'Container', 'Trailer', 'Tanker', 'Tipper', 'Other']
 const sortOptions = ['Recently added', 'Truck number A–Z', 'Truck number Z–A']
@@ -29,7 +30,13 @@ export default function TrucksPage() {
   const { me } = useAuthSession()
   const { data: apiTrucks, isLoading, error: apiError, remove } = useTrucks()
   const { data: tripsData } = useTrips()
+  const { data: subscription } = useSubscription()
   const trucks = apiTrucks || []
+  const planCode = String(subscription?.planCode || '').toUpperCase()
+  const truckLimit = planCode === 'GROWTH' ? 10 : null
+  const isTruckLimitReached = truckLimit != null && trucks.length >= truckLimit
+  const truckLimitMessage =
+    'Growth plan allows up to 10 trucks. Upgrade to Pro for unlimited trucks.'
   const hasTrips = (tripsData || []).length > 0
 
   useEffect(() => {
@@ -156,6 +163,15 @@ export default function TrucksPage() {
     setDebouncedSearch('')
   }
 
+  const handleAddTruckClick = () => {
+    if (isTruckLimitReached) {
+      setToast(truckLimitMessage)
+      window.setTimeout(() => setToast(''), 2400)
+      return
+    }
+    navigateTo('/trucks/new')
+  }
+
   const openMenu = (event, id) => {
     const rect = event.currentTarget.getBoundingClientRect()
     const menuHeight = 150
@@ -230,15 +246,22 @@ export default function TrucksPage() {
               <div>
                 <h1 className="text-2xl font-semibold text-[#111827]">Trucks</h1>
                 <p className="mt-1 text-sm text-[#6B7280]">All your trucks in one place.</p>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Total trucks: {trucks.length}
+                </p>
               </div>
               <button
-                className="h-11 w-full rounded-xl bg-[#2F66F6] px-4 text-sm font-semibold text-white sm:w-auto"
+                className="h-11 w-full rounded-xl bg-[#2F66F6] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
                 type="button"
-                onClick={() => navigateTo('/trucks/new')}
+                onClick={handleAddTruckClick}
+                disabled={isTruckLimitReached}
               >
                 + Add truck
               </button>
             </div>
+            {isTruckLimitReached && (
+              <p className="mt-2 text-xs font-semibold text-amber-600">{truckLimitMessage}</p>
+            )}
 
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="relative w-full sm:max-w-xs">
@@ -323,7 +346,7 @@ export default function TrucksPage() {
                   <button
                     className="mt-4 h-11 rounded-xl bg-[#2F66F6] px-5 text-sm font-semibold text-white"
                     type="button"
-                    onClick={() => navigateTo('/trucks/new')}
+                    onClick={handleAddTruckClick}
                   >
                     Add your first truck
                   </button>
