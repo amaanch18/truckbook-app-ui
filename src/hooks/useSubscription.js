@@ -16,7 +16,7 @@ const getDaysLeft = (subscription) => {
 export const useSubscription = (options = {}) => {
   const { auto = true } = options
   const [data, setData] = useState(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(auto)
   const [isFetching, setIsFetching] = useState(false)
   const [error, setError] = useState(null)
   const hasLoadedRef = useRef(false)
